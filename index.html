@@ -7,8 +7,31 @@
   <title>Three.js</title>
 </head>
 
+<style>
+  body {
+    overflow: hidden;
+  }
+
+  #canvas {
+    transform: rotateY(-180deg);
+  }
+
+  #canvas2 {
+    margin-top: -174px;
+  }
+
+
+  canvas {
+    display: block;
+    margin: 0 auto;
+  }
+</style>
+
 <body>
-  <canvas id="canvas" width="300" height="300"></canvas>
+  <div>
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <canvas id="canvas2" width="500" height="500"></canvas>
+  </div>
 
   <script type="importmap">
          {
@@ -34,24 +57,130 @@
     })
     renderer.outputEncoding = THREE.sRGBEncoding // 보여지는 색 맞추기
 
-    let camera = new THREE.PerspectiveCamera(30, 1)
-    camera.position.set(0, 0, 5)
+    let camera = new THREE.PerspectiveCamera(35, 1)
+    camera.position.set(1000, 1000, 0)
 
     const controls = new OrbitControls(camera, renderer.domElement);
     scene.background = new THREE.Color('white')
-    let light = new THREE.DirectionalLight(0xffff00, 10)
-    scene.add(light)
+    const color = 0xFFFFFF;
+    const intensity = 1;
+    const light = new THREE.AmbientLight(color, intensity);
+    scene.add(light);
 
     let loader = new GLTFLoader();
-    loader.load('shiba/scene.gltf', function (gltf) {
-      scene.add(gltf.scene);
+    loader.load('cat/scene.gltf', function (gltf) {
+      const catModel = gltf.scene;
+      scene.add(catModel);
+
+      // 참조할 애니메이션 클립을 추출합니다.
+      const mixer = new THREE.AnimationMixer(catModel);
+      const clips = gltf.animations;
+      if (clips && clips.length > 0) {
+        const clip = clips[0]; // 여기서는 첫 번째 애니메이션 클립을 사용합니다.
+        const action = mixer.clipAction(clip);
+        action.play(); // 애니메이션을 재생합니다.
+      }
+
+      const cat = document.querySelector('#canvas')
+      let xPos = 0;
+      let rafId
+      let isAnimating = true;
+      let movingForward = true; // 현재 앞으로 이동 중인지 여부
+
       function animate() {
-        requestAnimationFrame(animate)
-        gltf.scene.rotation.y -= 0.1
-        renderer.render(scene, camera);
+        if (isAnimating) {
+          mixer.update(0.01); // 애니메이션 갱신
+          renderer.render(scene, camera);
+
+          // 데스크톱 환경에서의 동작
+          if (!matchMedia("screen and (min-width: 768px)").matches) {
+            if (movingForward) {
+              xPos += 3;
+              if (xPos >= 400) {
+                xPos = 400;
+                movingForward = false;
+              }
+              cat.style.transform = `translateX(${xPos}px) rotateY(-180deg)`;
+            } else {
+              xPos -= 3;
+              if (xPos <= -400) {
+                xPos = -400;
+                movingForward = true;
+              }
+              cat.style.transform = `translateX(${xPos}px)`;
+            }
+          }
+
+          // 모바일 환경에서의 동작
+          if (matchMedia("screen and (min-width: 768px)").matches) {
+            if (movingForward) {
+              xPos += 2;
+              if (xPos >= 1000) {
+                xPos = 1000;
+                movingForward = false;
+              }
+              cat.style.transform = `translateX(${xPos}px) rotateY(-180deg)`;
+            } else {
+              xPos -= 2;
+              if (xPos <= -1000) {
+                xPos = -1000;
+                movingForward = true;
+              }
+              cat.style.transform = `translateX(${xPos}px)`;
+            }
+          }
+          requestAnimationFrame(animate);
+        }
+
+      }
+      animate();
+    });
+
+    let scene2 = new THREE.Scene();
+
+    let renderer2 = new THREE.WebGLRenderer({
+      canvas: document.querySelector('#canvas2'),
+      antialias: true
+    })
+    renderer2.outputEncoding = THREE.sRGBEncoding // 보여지는 색 맞추기
+
+    let camera2 = new THREE.PerspectiveCamera(30, 1)
+    camera2.position.set(0, 0, 5)
+
+    const controls2 = new OrbitControls(camera2, renderer2.domElement);
+    scene2.background = new THREE.Color('white')
+    let light2 = new THREE.DirectionalLight(0xffff00, 10)
+    scene2.add(light2)
+
+
+    let isMouseOver = false;
+
+    let loader2 = new GLTFLoader();
+
+    const canvas = document.querySelector('#canvas2')
+
+    canvas.addEventListener('mouseover', () => {
+      isMouseOver = true
+    })
+
+    canvas.addEventListener('mouseout', () => {
+      isMouseOver = false
+    })
+    loader2.load('shiba/scene.gltf', function (gltf) {
+      scene2.add(gltf.scene);
+
+
+
+      function animate() {
+        if (!isMouseOver) {
+          gltf.scene.rotation.y -= 0.01;
+        }
+        renderer2.render(scene2, camera2);
+        requestAnimationFrame(animate);
       }
       animate()
     })
+
 
   </script>
 </body>
